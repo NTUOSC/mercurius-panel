@@ -1,25 +1,31 @@
 <template>
 <section class="index">
-  <article id="status-box">
-    <span id="status"></span>
-    <span id="station"></span>
+  <article id="status-box" :class="buttonState === 'offline' ? 'offline' : ''">
+    <span id="status">{{ statusBox.status }}</span>
+    <span id="station">{{ statusBox.station }}</span>
   </article>
   <article id="message-box">
-    <article id="name"></article>
-    <article id="message"></article>
+    <article id="name">{{ messageBox.name }}</article>
+    <article id="message">{{ messageBox.msg }}</article>
   </article>
   <article id="button-box">
     <div id="authenticate-button" class="button-set">
       <div class="button-cell">
-        <button id="accept" disabled>確認驗證</button>
+        <button id="accept"
+          :disabled="buttonState !== 'authenticated'"
+          @click="acceptListener">確認驗證</button>
       </div>
       <div class="button-cell">
-        <button id="reject" disabled>終止驗證</button>
+        <button id="reject"
+          :disabled="buttonState !== 'authenticated'"
+          @click="rejectListener">終止驗證</button>
       </div>
     </div>
     <div id="clear-button" class="button-set">
       <div class="button-cell">
-        <button id="dismiss">清除訊息</button>
+        <button id="dismiss"
+          :disabled="buttonState !== 'default'"
+          @click="dismissListener">清除訊息</button>
       </div>
     </div>
   </article>
@@ -42,42 +48,6 @@ const l  = str => {
     return str
 }
 
-const clear_message = () => {
-  const xs = $$('#message-box article')
-  for (let i = 0; i < xs.length; i++) {
-    xs[i].innerHTML = ''
-  }
-}
-
-const set_attr = (selector, attr) => {
-  const xs = $$(selector)
-  for (let i = 0; i < xs.length; i++) {
-    xs[i].setAttribute(attr, true)
-  }
-}
-
-const rm_attr = (selector, attr) => {
-  const xs = $$(selector)
-  for (let i = 0; i < xs.length; i++) {
-    xs[i].removeAttribute(attr)
-  }
-}
-
-const change_button_state = s => {
-  if (s === 'default') {
-    set_attr('#authenticate-button button', 'disabled')
-    rm_attr('#clear-button button', 'disabled')
-  }
-  else if (s === 'authenticated') {
-    set_attr('#clear-button button', 'disabled')
-    rm_attr('#authenticate-button button', 'disabled')
-  }
-  else if (s === 'offline') {
-    set_attr('#authenticate-button button', 'disabled')
-    set_attr('#clear-button button', 'disabled')
-  }
-}
-
 let timeout = null
 
 const socket = io(document.URL)
@@ -85,72 +55,85 @@ const socket = io(document.URL)
 export default {
   name: 'index',
   data () {
-    return {}
+    return {
+      messageBox: {
+        name: '',
+        msg:  ''
+      },
+      statusBox: {
+        station: '',
+        status:  l('offline')
+      },
+      buttonState: 'default'
+    }
   },
   created() {
     const app = this
 
     socket.on('authenticated', data => {
-      $('#name').innerHTML    = data.id
-      $('#message').innerHTML = `${data.type} ${data.department}`
-      change_button_state('authenticated')
+      app.messageBox.name = data.id
+      app.messageBox.msg  = `${data.type} ${data.department}`
+      app.buttonState     = 'authenticated'
     })
 
     socket.on('confirmed', data => {
-      $('#name').innerHTML    = data.student_id
-      $('#message').innerHTML = `${l('please go to station')} ${data.slot}`
-      change_button_state('default')
+      app.messageBox.name = data.student_id
+      app.messageBox.msg  = `${l('please go to station')} ${data.slot}`
+      app.buttonState     = 'default'
     })
 
     socket.on('message', data => {
-      $('#name').innerHTML    = ''
-      $('#message').innerHTML = l(data)
-      change_button_state('default')
+      app.messageBox.name = ''
+      app.messageBox.msg  = l(data)
+      app.buttonState     = 'default'
+
       if (timeout !== null) {
         clearTimeout(timeout)
       }
-      timeout = setTimeout(clear_message, 5000)
+      timeout = setTimeout(app.cleanMessage, 5000)
     })
 
     socket.on('station', data => {
-      $('#station').innerHTML = data
+      app.statusBox.station = data
     })
 
     // Connection ON
     socket.on('connect', () => {
-      $('#status').innerHTML     = l('online')
-      $('#status-box').className = ''
-      change_button_state('default')
+      app.statusBox.status = l('online')
+      app.buttonState      = 'default'
     })
     socket.on('reconnect', () => {
-      $('#status').innerHTML     = l('online')
-      $('#status-box').className = ''
-      change_button_state('default')
+      app.statusBox.status = l('online')
+      app.buttonState      = 'default'
     })
 
     // Connection OFF
     socket.on('disconnect', () => {
-      $('#status').innerHTML     = l('offline')
-      $('#status-box').className = 'offline'
-      change_button_state('offline')
-      clear_message()
-    });
-
-    $('#accept').addEventListener('click', ev => {
+      app.statusBox.status = l('offline')
+      app.buttonState      = 'offline'
+      app.cleanMessage()
+    })
+  },
+  methods: {
+    acceptListener(ev) {
+      this.buttonState = 'default'
       socket.emit('accept')
-      change_button_state('default')
-    })
-
-    $('#reject').addEventListener('click', ev => {
+    },
+    rejectListener(ev) {
+      this.buttonState = 'default'
       socket.emit('reject')
-      change_button_state('default')
-    })
-
-    $('#dismiss').addEventListener('click', ev => {
-      change_button_state('default')
-      clear_message()
+    },
+    dismissListener(ev) {
+      const app = this
+      app.buttonState = 'default'
+      app.cleanMessage()
       clearTimeout(timeout)
-    })
+    },
+    cleanMessage() {
+      const app = this
+      app.messageBox.name = ''
+      app.messageBox.msg  = ''
+    }
   }
 }
 </script>
