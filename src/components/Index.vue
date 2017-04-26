@@ -1,8 +1,8 @@
 <template>
 <section class="index">
-  <article id="status-box" :class="buttonState === 'offline' ? 'offline' : ''">
-    <span id="status">{{ statusBox.status }}</span>
-    <span id="station">{{ statusBox.station }}</span>
+  <article id="status-box" :class="status">
+    <span id="status">{{ statusMsg }}</span>
+    <span id="station">{{ station }}</span>
   </article>
   <article id="message-box">
     <article id="name">{{ messageBox.name }}</article>
@@ -12,19 +12,19 @@
     <div id="authenticate-button" class="button-set">
       <div class="button-cell">
         <button id="accept"
-          :disabled="buttonState !== 'authenticated'"
+          :disabled="status !== 'authenticated'"
           @click="acceptListener">確認驗證</button>
       </div>
       <div class="button-cell">
         <button id="reject"
-          :disabled="buttonState !== 'authenticated'"
+          :disabled="status !== 'authenticated'"
           @click="rejectListener">終止驗證</button>
       </div>
     </div>
     <div id="clear-button" class="button-set">
       <div class="button-cell">
         <button id="dismiss"
-          :disabled="buttonState !== 'default'"
+          :disabled="status !== 'online'"
           @click="dismissListener">清除訊息</button>
       </div>
     </div>
@@ -37,9 +37,6 @@ import io from 'socket.io-client'
 
 require('../assets/l10n.min.js')
 require('../assets/localisation.js')
-
-const $  = s => document.querySelector(s)
-const $$ = s => document.querySelectorAll(s)
 
 const l  = str => {
   if (str)
@@ -54,78 +51,84 @@ const socket = io(document.URL)
 
 export default {
   name: 'index',
+  /**
+   *  status: 'online', 'authenticated', 'offline'
+   */
   data () {
     return {
       messageBox: {
         name: '',
         msg:  ''
       },
-      statusBox: {
-        station: '',
-        status:  l('offline')
-      },
-      buttonState: 'default'
+      status:  'offline',
+      station: ''
     }
   },
   created() {
     const app = this
-
+    /**
+     *  authenticated
+     */
     socket.on('authenticated', data => {
+      app.status          = 'authenticated'
       app.messageBox.name = data.id
       app.messageBox.msg  = `${data.type} ${data.department}`
-      app.buttonState     = 'authenticated'
     })
-
+    /**
+     *  confirmed
+     */
     socket.on('confirmed', data => {
+      app.status          = 'online'
       app.messageBox.name = data.student_id
       app.messageBox.msg  = `${l('please go to station')} ${data.slot}`
-      app.buttonState     = 'default'
     })
-
+    /**
+     *  message
+     */
     socket.on('message', data => {
+      app.status          = 'online'
       app.messageBox.name = ''
       app.messageBox.msg  = l(data)
-      app.buttonState     = 'default'
 
       if (timeout !== null) {
         clearTimeout(timeout)
       }
       timeout = setTimeout(app.cleanMessage, 5000)
     })
-
-    socket.on('station', data => {
-      app.statusBox.station = data
-    })
-
+    /**
+     *  station
+     */
+    socket.on('station', data => { app.station = data })
+    /**
+     *  connection:
+     *    connect, reconnect, and disconnect
+     */
     // Connection ON
-    socket.on('connect', () => {
-      app.statusBox.status = l('online')
-      app.buttonState      = 'default'
-    })
-    socket.on('reconnect', () => {
-      app.statusBox.status = l('online')
-      app.buttonState      = 'default'
-    })
-
+    socket.on('connect',    () => { app.status = 'online' })
+    socket.on('reconnect',  () => { app.status = 'online' })
     // Connection OFF
     socket.on('disconnect', () => {
-      app.statusBox.status = l('offline')
-      app.buttonState      = 'offline'
+      app.status = 'offline'
       app.cleanMessage()
     })
   },
+  computed: {
+    statusMsg() {
+      return l(this.status)
+    }
+  },
   methods: {
     acceptListener(ev) {
-      this.buttonState = 'default'
+      this.status = 'online'
       socket.emit('accept')
     },
     rejectListener(ev) {
-      this.buttonState = 'default'
+      this.status = 'online'
       socket.emit('reject')
     },
     dismissListener(ev) {
       const app = this
-      app.buttonState = 'default'
+      app.status = 'online'
       app.cleanMessage()
       clearTimeout(timeout)
     },
@@ -161,7 +164,6 @@ body {
   display: table;
   width: 100%;
 }
-
 .button-cell {
   display: table-cell;
   padding: 0.25em;
@@ -178,7 +180,6 @@ button {
 button#accept {
   background: #8CC152;
 }
-
 button#accept.active {
   background: #A0D468;
 }
@@ -186,7 +187,6 @@ button#accept.active {
 button#reject {
   background: #DA4453;
 }
-
 button#reject.active {
   background: #ED5565;
 }
@@ -194,7 +194,6 @@ button#reject.active {
 button#dismiss {
   background: #3BAFDA;
 }
-
 button#dismiss.active {
   background: #4FC1E9;
 }
@@ -206,15 +205,12 @@ button[disabled] {
 article {
   padding: 1em;
 }
-
 article#status-box {
   border-bottom: #DDD 1px solid;
 }
-
 article#status-box.offline {
   color: #DA4453;
 }
-
 article#message-box {
   height: 8em;
 }
