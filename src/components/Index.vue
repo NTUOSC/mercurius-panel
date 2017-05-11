@@ -29,6 +29,13 @@
       </div>
     </div>
   </article>
+  <article id="station-box">
+      <div class="tablet" 
+          v-for="tablet in tablets"
+          v-bind:class="tablet.status">
+         {{ tablet.id }}
+      </div>
+  </article>
 </section>
 </template>
 
@@ -53,6 +60,7 @@ export default {
   name: 'index',
   /**
    *  status: 'online', 'authenticated', 'offline'
+   *  tablets: {@id, @staus}
    */
   data () {
     return {
@@ -61,7 +69,11 @@ export default {
         msg:  ''
       },
       status:  'offline',
-      station: ''
+      station: '',
+      id: null,
+      tablets: [
+          {id: 1, status:""}
+      ]
     }
   },
   created() {
@@ -136,6 +148,15 @@ export default {
       const app = this
       app.messageBox.name = ''
       app.messageBox.msg  = ''
+    },
+    getTabletStatus(tablet) {
+        // TODO: get the API Url from server
+        this.$http.post('/someUrl', {a_id: this.$data.id, num: tablet.id})
+        .then(response => {
+            tablet.status = response.body.result;
+        }, response => {
+            tablet.status = null
+        });
     }
   }
 }
@@ -213,5 +234,23 @@ article#status-box.offline {
 }
 article#message-box {
   height: 8em;
+}
+article#station-box {
+    height: 4em
+}
+
+.tablet {
+background-color: #BBB;
+height: 3em;
+width: 3em;
+margin: 1em;
+display: inline-block;
+text-align: center;
+}
+.tablet.free {
+background-color: #A0D468;
+}
+.tablet.lock {
+background-color: #FFD95F;
 }
 </style>
