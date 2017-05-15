@@ -1,4 +1,5 @@
 <template>
+<div>
 <section class="index">
   <article id="status-box" :class="status">
     <span id="status">{{ statusMsg }}</span>
@@ -30,6 +31,10 @@
     </div>
   </article>
 </section>
+<article id="station-box" v-for="(tablet, idx) in tablets">
+  <div :id="`station${idx + 1}`" :class="`station ${tablet}`">{{ idx + 1 }}</div>
+</article>
+</div>
 </template>
 
 <script>
@@ -39,10 +44,8 @@ require('../assets/l10n.min.js')
 require('../assets/localisation.js')
 
 const l  = str => {
-  if (str)
-    return str.toLocaleString('zh_tw')
-  else
-    return str
+  if (str) return str.toLocaleString('zh_tw')
+  else     return str
 }
 
 let timeout = null
@@ -53,6 +56,7 @@ export default {
   name: 'index',
   /**
    *  status: 'online', 'authenticated', 'offline'
+   *  tablets: 'free', 'lock', 'unuse'
    */
   data () {
     return {
@@ -61,6 +65,7 @@ export default {
         msg:  ''
       },
       status:  'offline',
+      tablets: ['unuse', 'unuse', 'unuse', 'unuse', 'unuse'],
       station: ''
     }
   },
@@ -213,5 +218,20 @@ article#status-box.offline {
 }
 article#message-box {
   height: 8em;
+}
+
+article#station-box > .station {
+  background-color: #BBB;
+  height: 3em;
+  width: 3em;
+  margin: 1em;
+  display: inline-block;
+  text-align: center;
+}
+article#station-box > .free {
+  background-color: #A0D468;
+}
+article#station-box > .lock {
+  background-color: #FFD95F;
 }
 </style>
