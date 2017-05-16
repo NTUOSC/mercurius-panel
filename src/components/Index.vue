@@ -274,17 +274,19 @@ article#station-box {
 }
 
 .tablet {
-background-color: #BBB;
-height: 3em;
-width: 3em;
-margin: 1em;
-display: inline-block;
-text-align: center;
+  background-color: #BBB;
+  height: 3em;
+  width: 3em;
+  margin: 1em;
+  display: inline-block;
+  text-align: center;
+  line-height: 3em;
+  border-radius: 1.5em;
 }
 .tablet.free {
-background-color: #A0D468;
+  background-color: #A0D468;
 }
 .tablet.lock {
-background-color: #FFD95F;
+  background-color: #FFD95F;
 }
 </style>
