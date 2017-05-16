@@ -30,16 +30,9 @@
       </div>
     </div>
   </article>
-  <article id="station-box">
-      <div class="tablet" 
-          v-for="tablet in store.tablets"
-          v-bind:class="tablet.status">
-         {{ tablet.slot }}
-      </div>
-  </article>
 </section>
-<article id="station-box" v-for="(tablet, idx) in store.tablets">
-  <div :id="`station${idx + 1}`" :class="`station ${tablet}`">{{ idx + 1 }}</div>
+<article id="station-box" >
+  <div v-for="(tablet, idx) in store.tablets" :id="`station${idx + 1}`" :class="`station ${tablet}`">{{ idx + 1 }}</div>
 </article>
 </div>
 </template>
@@ -273,7 +266,7 @@ article#station-box {
     height: 4em
 }
 
-.tablet {
+.station {
   background-color: #BBB;
   height: 3em;
   width: 3em;
@@ -283,10 +276,10 @@ article#station-box {
   line-height: 3em;
   border-radius: 1.5em;
 }
-.tablet.free {
+.station.free {
   background-color: #A0D468;
 }
-.tablet.lock {
+.station.lock {
   background-color: #FFD95F;
 }
 </style>
