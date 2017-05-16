@@ -33,7 +33,7 @@
       <div class="tablet" 
           v-for="tablet in tablets"
           v-bind:class="tablet.status">
-         {{ tablet.id }}
+         {{ tablet.slot }}
       </div>
   </article>
 </section>
@@ -72,7 +72,6 @@ export default {
       station: '',
       id: null,
       tablets: [
-          {id: 1, status:""}
       ]
     }
   },
@@ -83,23 +82,21 @@ export default {
      */
     socket.on('authenticated', data => {
       app.status          = 'authenticated'
-      app.messageBox.name = data.id
-      app.messageBox.msg  = `${data.type} ${data.department}`
+      app.messageBox.name = `${data.id} ${data.type} ${data.department}`
+      app.messageBox.msg  = l('please remove the card')
     })
     /**
      *  confirmed
      */
     socket.on('confirmed', data => {
       app.status          = 'online'
-      app.messageBox.name = data.student_id
-      app.messageBox.msg  = `${l('please go to station')} ${data.slot}`
+      app.messageBox.name  = `${data.student_id} ${l('please go to station')} ${data.slot}`
     })
     /**
      *  message
      */
     socket.on('message', data => {
       app.status          = 'online'
-      app.messageBox.name = ''
       app.messageBox.msg  = l(data)
 
       if (timeout !== null) {
@@ -110,7 +107,20 @@ export default {
     /**
      *  station
      */
-    socket.on('station', data => { app.station = data })
+    socket.on('station', data => { app.station = `${data}${l('vote station')}` })
+    /**
+     *  update
+     */
+    socket.on('update', data => {
+      app.tablets = data
+    })
+    /**
+     *  attached
+     */
+    socket.on('attached', data => {
+      app.messageBox.name = data
+      app.messageBox.msg  = `${l('checking id card')}`
+    })
     /**
      *  connection:
      *    connect, reconnect, and disconnect
@@ -148,15 +158,6 @@ export default {
       const app = this
       app.messageBox.name = ''
       app.messageBox.msg  = ''
-    },
-    getTabletStatus(tablet) {
-        // TODO: get the API Url from server
-        this.$http.post('/someUrl', {a_id: this.$data.id, num: tablet.id})
-        .then(response => {
-            tablet.status = response.body.result;
-        }, response => {
-            tablet.status = null
-        });
     }
   }
 }
