@@ -24,11 +24,18 @@ String.toLocaleString({
 
         "login_success": "登入成功",
         "reject_success": "成功拒絕投票",
-        "connection_error": "網路異常",
+        "connection_error": "網路連線失敗，請稍候再試",
+        "login_success": "登入成功",
+
+        "vote station": "投票所",
         "online": "讀卡機連線成功。",
         "offline": "讀卡機連線失敗，請稍候再試。",
+        "authenticated": "驗證進行中，讀卡機已鎖定。",
 
+        "checking id card": "卡片驗證中，請稍候",
         "please go to station": "請前往平板",
+        "please remove the card": "您可以移開卡片了。",
         "there are no more online-booth-tablet": "票亭已滿，請稍候再試"
     }
 });
+

@@ -34,7 +34,7 @@
       <div class="tablet" 
           v-for="tablet in store.tablets"
           v-bind:class="tablet.status">
-         {{ tablet.id }}
+         {{ tablet.slot }}
       </div>
   </article>
 </section>
