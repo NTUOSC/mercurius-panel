@@ -78,7 +78,7 @@ export default {
    */
   data () {
     return {
-      status:     code.offline,
+      status: code.offline,
       store: {
         msg_status: code.clean,
         student: {
@@ -115,6 +115,14 @@ export default {
     socket.on('disconnect', () => {
       app.status = code.offline
       app.clean_info()
+    })
+    /**
+     *  initialise
+     */
+    socket.on('initialise', data => {
+      if (app.status === code.offline)
+        app.status = code.online
+      _.merge(app.store, data)
     })
     /**
      *  update
