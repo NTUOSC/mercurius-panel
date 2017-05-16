@@ -2,12 +2,12 @@
 <div>
 <section class="index">
   <article id="status-box" :class="status">
-    <span id="status">{{ statusMsg }}</span>
-    <span id="station">{{ station }}</span>
+    <span id="status">{{ status_message }}</span>
+    <span id="station">{{ store.station.name }}</span>
   </article>
-  <article id="message-box">
-    <article id="name">{{ messageBox.name }}</article>
-    <article id="message">{{ messageBox.msg }}</article>
+  <article id="info-box">
+    <article id="title">{{ info.title }}</article>
+    <article id="message">{{ info.message }}</article>
   </article>
   <article id="button-box">
     <div id="authenticate-button" class="button-set">
@@ -30,14 +30,22 @@
       </div>
     </div>
   </article>
+  <article id="station-box">
+      <div class="tablet" 
+          v-for="tablet in store.tablets"
+          v-bind:class="tablet.status">
+         {{ tablet.id }}
+      </div>
+  </article>
 </section>
-<article id="station-box" v-for="(tablet, idx) in tablets">
+<article id="station-box" v-for="(tablet, idx) in store.tablets">
   <div :id="`station${idx + 1}`" :class="`station ${tablet}`">{{ idx + 1 }}</div>
 </article>
 </div>
 </template>
 
 <script>
+import _  from 'lodash'
 import io from 'socket.io-client'
 
 require('../assets/l10n.min.js')
@@ -48,99 +56,133 @@ const l  = str => {
   else     return str
 }
 
-let timeout = null
-
 const socket = io(document.URL)
+
+const code = {
+  online:        'online',
+  offline:       'offline',
+  authenticated: 'authenticated',
+  confirmed:     'confirmed',
+  message:       'message',
+  clean:         'clean'
+}
+
+let timeout = null
 
 export default {
   name: 'index',
   /**
    *  status: 'online', 'authenticated', 'offline'
-   *  tablets: 'free', 'lock', 'unuse'
+   *  store.msg_status: 'message', 'authenticated', 'confirmed', 'clean'
+   *  tablets: {@id, @status}
    */
   data () {
     return {
-      messageBox: {
-        name: '',
-        msg:  ''
+      status:     code.offline,
+      store: {
+        msg_status: code.clean,
+        student: {
+          id: '',
+          type: '',
+          department: ''
+        },
+        station: {
+          id:   '',
+          name: ''
+        },
+        tablets: [
+          { id: 1, status: '' }
+        ],
+        slot:      '',
+        error_msg: ''
       },
-      status:  'offline',
-      tablets: ['unuse', 'unuse', 'unuse', 'unuse', 'unuse'],
-      station: ''
+      info: {
+        title:   '',
+        message: ''
+      }
     }
   },
   created() {
     const app = this
     /**
-     *  authenticated
-     */
-    socket.on('authenticated', data => {
-      app.status          = 'authenticated'
-      app.messageBox.name = data.id
-      app.messageBox.msg  = `${data.type} ${data.department}`
-    })
-    /**
-     *  confirmed
-     */
-    socket.on('confirmed', data => {
-      app.status          = 'online'
-      app.messageBox.name = data.student_id
-      app.messageBox.msg  = `${l('please go to station')} ${data.slot}`
-    })
-    /**
-     *  message
-     */
-    socket.on('message', data => {
-      app.status          = 'online'
-      app.messageBox.name = ''
-      app.messageBox.msg  = l(data)
-
-      if (timeout !== null) {
-        clearTimeout(timeout)
-      }
-      timeout = setTimeout(app.cleanMessage, 5000)
-    })
-    /**
-     *  station
-     */
-    socket.on('station', data => { app.station = data })
-    /**
      *  connection:
      *    connect, reconnect, and disconnect
      */
     // Connection ON
-    socket.on('connect',    () => { app.status = 'online' })
-    socket.on('reconnect',  () => { app.status = 'online' })
+    socket.on('connect',    () => { app.status = code.online })
+    socket.on('reconnect',  () => { app.status = code.online })
     // Connection OFF
     socket.on('disconnect', () => {
-      app.status = 'offline'
-      app.cleanMessage()
+      app.status = code.offline
+      app.clean_info()
+    })
+    /**
+     *  update
+     */
+    socket.on('update', data => {
+      if (app.status === code.offline)
+        app.status = code.online
+      _.merge(app.store, data)
+    })
+    /**
+     *  authenticated
+     */
+    socket.on('authenticated', data => {
+      app.status = code.authenticated
+      _.merge(app.store, data)
     })
   },
   computed: {
-    statusMsg() {
+    status_message() {
       return l(this.status)
+    },
+    info() {
+      const app = this
+      switch (app.store.msg_status) {
+        // print error message
+        case code.message:
+          if (timeout !== null)
+            clearTimeout(timeout)
+          timeout = setTimeout(app.clean_info, 5000)
+          return {
+            title: '',
+            message: l(app.store.error_msg)
+          }
+        // show information of authenticated student
+        case code.authenticated:
+          const student = app.store.student
+          return {
+            title: student.id,
+            message: `${student.type} ${student.department}`
+          }
+        // confirm student and show slot
+        case code.confirmed:
+          return {
+            title: app.store.student.id,
+            message: `${l('please go to station')} ${app.store.slot}`
+          }
+        // clean message
+        default:
+          return {
+            title:   '',
+            message: ''
+          }
+      }
     }
   },
   methods: {
     acceptListener(ev) {
-      this.status = 'online'
       socket.emit('accept')
     },
     rejectListener(ev) {
-      this.status = 'online'
       socket.emit('reject')
     },
     dismissListener(ev) {
-      const app = this
-      app.status = 'online'
-      app.cleanMessage()
+      this.clean_info()
       clearTimeout(timeout)
     },
-    cleanMessage() {
-      const app = this
-      app.messageBox.name = ''
-      app.messageBox.msg  = ''
+    clean_info() {
+      this.msg_status = code.clean
     }
   }
 }
@@ -216,22 +258,25 @@ article#status-box {
 article#status-box.offline {
   color: #DA4453;
 }
-article#message-box {
+article#info-box {
   height: 8em;
 }
+article#station-box {
+    height: 4em
+}
 
-article#station-box > .station {
-  background-color: #BBB;
-  height: 3em;
-  width: 3em;
-  margin: 1em;
-  display: inline-block;
-  text-align: center;
+.tablet {
+background-color: #BBB;
+height: 3em;
+width: 3em;
+margin: 1em;
+display: inline-block;
+text-align: center;
 }
-article#station-box > .free {
-  background-color: #A0D468;
+.tablet.free {
+background-color: #A0D468;
 }
-article#station-box > .lock {
-  background-color: #FFD95F;
+.tablet.lock {
+background-color: #FFD95F;
 }
 </style>
